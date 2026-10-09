@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Smart Parking System</title>
+<style>
+body {
+  font-family: Arial, sans-serif;
+  background: #eef2f7;
+  text-align: center;
+  padding: 20px;
+  color: #1e293b;
+}
+.container {
+  max-width: 600px;
+  margin: auto;
+  background: white;
+  padding: 24px;
+  border-radius: 15px;
+  box-shadow: 0 4px 15px #0001;
+}
+.stats, .slots {
+  display: flex;
+  gap: 12px;
+  margin: 20px 0;
+}
+.card, .slot {
+  flex: 1;
+  padding: 20px 8px;
+  border-radius: 10px;
+}
+.card { background: #e2e8f0; }
+.slot { background: #16a34a; color: white; }
+.occupied { background: #dc2626; }
+.number { font-size: 32px; font-weight: bold; }
+#message { overflow-wrap: anywhere; }
+@media(max-width:450px) {
+  .stats, .slots { gap: 6px; }
+  .card, .slot { padding: 14px 4px; }
+}
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>Smart Parking System</h1>
+  <p>Firebase Live Dashboard</p>
+
+  <div class="stats">
+    <div class="card">Available
+      <div class="number" id="available">--</div>
+    </div>
+    <div class="card">Occupied
+      <div class="number" id="occupied">--</div>
+    </div>
+  </div>
+
+  <div class="slots">
+    <div class="slot" id="box1">
+      <h2>Slot 1</h2><p id="slot1">Loading...</p>
+    </div>
+    <div class="slot" id="box2">
+      <h2>Slot 2</h2><p id="slot2">Loading...</p>
+    </div>
+  </div>
+
+  <p id="message">Connecting to Firebase...</p>
+</div>
+
+<script type="module">
+import { initializeApp }
+  from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getDatabase, ref, onValue }
+  from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyDZxTBK96ZWBdG7tUAfmsNT41qSNaRZdqE",
+  authDomain: "iot-with-c-program-65fcf.firebaseapp.com",
+
+  // IMPORTANT: Replace with the exact URL from
+  // Firebase Console > Build > Realtime Database
+  databaseURL: "REPLACE_WITH_YOUR_ACTUAL_DATABASE_URL",
+
+  projectId: "iot-with-c-program-65fcf",
+  appId: "1:318055029251:web:b63676f24f0f6485b98c36"
+};
+
+const message = document.getElementById("message");
+
+try {
+  if (!firebaseConfig.databaseURL.startsWith("https://") ||
+      firebaseConfig.databaseURL.includes("REPLACE_WITH")) {
+    throw new Error(
+      "Add your actual Firebase Realtime Database URL."
+    );
+  }
+
+  const app = initializeApp(firebaseConfig);
+  const db = getDatabase(app);
+
+  message.textContent = "Connecting to Firebase...";
+
+  onValue(ref(db, "parking"), (snapshot) => {
+    const data = snapshot.val();
+
+    if (!data) {
+      document.getElementById("available").textContent = "2";
+      document.getElementById("occupied").textContent = "0";
+      document.getElementById("slot1").textContent = "NO DATA";
+      document.getElementById("slot2").textContent = "NO DATA";
+      message.textContent =
+        "Connected, but /parking is empty. Start ESP32 or add test data.";
+      return;
+    }
+
+    const s1 = data.slot1 === "Occupied";
+    const s2 = data.slot2 === "Occupied";
+
+    document.getElementById("slot1").textContent =
+      s1 ? "OCCUPIED" : "AVAILABLE";
+    document.getElementById("slot2").textContent =
+      s2 ? "OCCUPIED" : "AVAILABLE";
+
+    document.getElementById("box1").classList.toggle("occupied", s1);
+    document.getElementById("box2").classList.toggle("occupied", s2);
+
+    document.getElementById("available").textContent =
+      Number(!s1) + Number(!s2);
+    document.getElementById("occupied").textContent =
+      Number(s1) + Number(s2);
+
+    message.textContent = "Connected to Firebase. Live updates enabled.";
+  }, (error) => {
+    message.textContent = "Firebase error: " + error.message;
+    console.error("Firebase listener error:", error);
+  });
+} catch (error) {
+  message.textContent = "Setup error: " + error.message;
+  console.error(error);
+}
+</script>
+</body>
+</html>
